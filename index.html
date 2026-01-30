@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matriz_Prioridad de Producto</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #FAFBFC;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary: #F3F4F6;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+            --border-light: #F3F4F6;
+            --accent: #2563EB;
+            --accent-light: #DBEAFE;
+            --urgente: #DC2626;
+            --urgente-bg: #FEE2E2;
+            --alta: #F59E0B;
+            --alta-bg: #FEF3C7;
+            --media: #10B981;
+            --media-bg: #D1FAE5;
+            --baja: #6B7280;
+            --baja-bg: #F3F4F6;
+            --backlog: #9CA3AF;
+            --backlog-bg: #F9FAFB;
+            --cuadrante-hacer: rgba(239, 68, 68, 0.15);
+            --cuadrante-planificar: rgba(59, 130, 246, 0.15);
+            --cuadrante-evaluar: rgba(251, 191, 36, 0.15);
+            --cuadrante-backlog: rgba(156, 163, 175, 0.1);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.08);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.125rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1D4ED8;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Main Layout */
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--bg-tertiary);
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+            width: fit-content;
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            transition: all 0.15s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.02em;
+        }
+
+        .stat-card.urgente { border-left: 4px solid var(--urgente); }
+        .stat-card.urgente .stat-value { color: var(--urgente); }
+        .stat-card.alta { border-left: 4px solid var(--alta); }
+        .stat-card.alta .stat-value { color: var(--alta); }
+        .stat-card.media { border-left: 4px solid var(--media); }
+        .stat-card.media .stat-value { color: var(--media); }
+        .stat-card.baja { border-left: 4px solid var(--baja); }
+        .stat-card.baja .stat-value { color: var(--baja); }
+        .stat-card.backlog { border-left: 4px solid var(--backlog); }
+        .stat-card.backlog .stat-value { color: var(--backlog); }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .table-filters {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.875rem 1rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: var(--bg-tertiary);
+        }
+
+        .proyecto-cell {
+            font-weight: 500;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-urgente { background: var(--urgente-bg); color: var(--urgente); }
+        .badge-alta { background: var(--alta-bg); color: var(--alta); }
+        .badge-media { background: var(--media-bg); color: var(--media); }
+        .badge-baja { background: var(--baja-bg); color: var(--baja); }
+        .badge-backlog { background: var(--backlog-bg); color: var(--backlog); }
+
+        .score-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Form */
+        .form-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            max-width: 800px;
+        }
+
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-label {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input,
+        .form-select {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .form-actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.75rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--text-primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: #059669;
+        }
+
+        .toast.error {
+            background: var(--urgente);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .main {
+                padding: 1rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .table-filters {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    </svg>
+                </div>
+                <span class="logo-text">Matriz_Prioridad de Producto</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="refreshData()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Actualizar
+                </button>
+                <button class="btn btn-primary" onclick="exportToExcel()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <nav class="tabs">
+            <button class="tab active" data-section="dashboard">Dashboard</button>
+            <button class="tab" data-section="proyectos">Proyectos</button>
+            <button class="tab" data-section="nuevo">+ Nuevo Proyecto</button>
+        </nav>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="dashboard-grid">
+                <div class="stat-card urgente">
+                    <div class="stat-label">Urgente</div>
+                    <div class="stat-value" id="count-urgente">0</div>
+                </div>
+                <div class="stat-card alta">
+                    <div class="stat-label">Alta</div>
+                    <div class="stat-value" id="count-alta">0</div>
+                </div>
+                <div class="stat-card media">
+                    <div class="stat-label">Media</div>
+                    <div class="stat-value" id="count-media">0</div>
+                </div>
+                <div class="stat-card baja">
+                    <div class="stat-label">Baja</div>
+                    <div class="stat-value" id="count-baja">0</div>
+                </div>
+                <div class="stat-card backlog">
+                    <div class="stat-label">Backlog</div>
+                    <div class="stat-value" id="count-backlog">0</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Matriz de Priorización</h2>
+                    <div class="chart-legend" style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                            <span style="width: 12px; height: 12px; background: var(--cuadrante-hacer); border: 1px solid rgba(239,68,68,0.3); border-radius: 2px;"></span>
+                            Hacer Ya
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                            <span style="width: 12px; height: 12px; background: var(--cuadrante-planificar); border: 1px solid rgba(59,130,246,0.3); border-radius: 2px;"></span>
+                            Planificar
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                            <span style="width: 12px; height: 12px; background: var(--cuadrante-evaluar); border: 1px solid rgba(251,191,36,0.3); border-radius: 2px;"></span>
+                            Evaluar
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                            <span style="width: 12px; height: 12px; background: var(--cuadrante-backlog); border: 1px solid rgba(156,163,175,0.3); border-radius: 2px;"></span>
+                            Backlog
+                        </span>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="bubbleChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h2 class="table-title">Top 10 Prioridades</h2>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Proyecto</th>
+                                <th>Cliente</th>
+                                <th>Dev</th>
+                                <th>Score</th>
+                                <th>Categoría</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top10-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Proyectos Section -->
+        <section id="proyectos" class="section">
+            <div class="table-container">
+                <div class="table-header">
+                    <h2 class="table-title">Todos los Proyectos</h2>
+                    <div class="table-filters">
+                        <select class="filter-select" id="filter-categoria">
+                            <option value="">Todas las categorías</option>
+                            <option value="URGENTE">Urgente</option>
+                            <option value="ALTA">Alta</option>
+                            <option value="MEDIA">Media</option>
+                            <option value="BAJA">Baja</option>
+                            <option value="BACKLOG">Backlog</option>
+                        </select>
+                        <select class="filter-select" id="filter-dev">
+                            <option value="">Todos los devs</option>
+                        </select>
+                        <select class="filter-select" id="filter-estado">
+                            <option value="">Todos los estados</option>
+                            <option value="Sin iniciar">Sin iniciar</option>
+                            <option value="En progreso">En progreso</option>
+                            <option value="Entregado">Entregado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Proyecto</th>
+                                <th>Cliente</th>
+                                <th>Tipo</th>
+                                <th>Ticket</th>
+                                <th>Presupuesto</th>
+                                <th>Dev</th>
+                                <th>Tiempo</th>
+                                <th>Impacto</th>
+                                <th>Estado</th>
+                                <th>Score</th>
+                                <th>Categoría</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proyectos-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Nuevo Proyecto Section -->
+        <section id="nuevo" class="section">
+            <div class="form-container">
+                <h2 class="form-title">Nuevo Proyecto</h2>
+                <form id="proyecto-form">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Nombre del Proyecto *</label>
+                            <input type="text" class="form-input" name="proyecto" required placeholder="Ej: Campaña Leads">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cliente/Empresa *</label>
+                            <input type="text" class="form-input" name="cliente" required placeholder="Ej: ArgenPymes">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo *</label>
+                            <select class="form-select" name="tipo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Cliente">Cliente</option>
+                                <option value="Prospecto">Prospecto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ticket Mensual *</label>
+                            <select class="form-select" name="ticket" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="0">$0</option>
+                                <option value="1-500">$1-500</option>
+                                <option value="500-1000">$500-1000</option>
+                                <option value="+1000">+$1000</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Presupuesto *</label>
+                            <select class="form-select" name="presupuesto" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="No enviado">No enviado</option>
+                                <option value="Enviado">Enviado</option>
+                                <option value="Enviado aprobado">Enviado aprobado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Dev Asignado * (Ctrl+click para varios)</label>
+                            <select class="form-select" name="dev" required multiple size="4" style="height: auto;">
+                                <option value="Ajus">Ajus</option>
+                                <option value="Fede Arienti">Fede Arienti</option>
+                                <option value="Axel">Axel</option>
+                                <option value="Ceci">Ceci</option>
+                                <option value="Nahue">Nahue</option>
+                                <option value="Fede del Pup">Fede del Pup</option>
+                                <option value="Fede Kraft">Fede Kraft</option>
+                                <option value="Lucas Ruiz">Lucas Ruiz</option>
+                                <option value="Bauti">Bauti</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Complejidad *</label>
+                            <select class="form-select" name="complejidad" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Baja">Baja</option>
+                                <option value="Media">Media</option>
+                                <option value="Alta">Alta</option>
+                                <option value="Muy Alta">Muy Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tiempo Implementación *</label>
+                            <select class="form-select" name="tiempo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Horas">Horas</option>
+                                <option value="Días">Días</option>
+                                <option value="1-2 semanas">1-2 semanas</option>
+                                <option value="2-4 semanas">2-4 semanas</option>
+                                <option value="+1 mes">+1 mes</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Impacto *</label>
+                            <select class="form-select" name="impacto" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Customizada cliente">Customizada cliente</option>
+                                <option value="Mejora producto general">Mejora producto general</option>
+                                <option value="Aplica más clientes tipo">Aplica más clientes tipo</option>
+                                <option value="Aplica todos clientes">Aplica todos clientes</option>
+                                <option value="Salto cuali MF">Salto cuali MF</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Presión MAV *</label>
+                            <select class="form-select" name="presionMAV" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Nula">Nula</option>
+                                <option value="Baja">Baja</option>
+                                <option value="Media">Media</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Presión MF *</label>
+                            <select class="form-select" name="presionMF" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Nula">Nula</option>
+                                <option value="Baja">Baja</option>
+                                <option value="Media">Media</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado *</label>
+                            <select class="form-select" name="estado" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Sin iniciar" selected>Sin iniciar</option>
+                                <option value="En progreso">En progreso</option>
+                                <option value="Entregado">Entregado</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Notas</label>
+                            <input type="text" class="form-input" name="notas" placeholder="Comentarios adicionales...">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Limpiar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Agregar Proyecto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Configuration
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSQGloopR7rK5psg-iSixpsIe0acRF_yoCfnHo5DEUQSMbBaIohDXGBJftpl2JBK2_3jXfgDVT8kT75/pub?gid=356196305&single=true&output=csv';
+        
+        // TODO: Replace with your Google Apps Script Web App URL
+        const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+        // State
+        let proyectos = [];
+        let bubbleChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTabs();
+            initFilters();
+            initForm();
+            loadData();
+        });
+
+        // Tab Navigation
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.section).classList.add('active');
+                });
+            });
+        }
+
+        // Load Data from Google Sheets
+        async function loadData() {
+            try {
+                showLoading();
+                const response = await fetch(SHEET_CSV_URL);
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        proyectos = results.data.filter(row => row['Proyecto/Demanda'] && row['Proyecto/Demanda'].trim() !== '');
+                        renderDashboard();
+                        renderProyectos();
+                        renderChart();
+                        populateDevFilter();
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('Error al cargar datos', 'error');
+            }
+        }
+
+        function refreshData() {
+            loadData();
+            showToast('Datos actualizados', 'success');
+        }
+
+        function showLoading() {
+            document.getElementById('proyectos-body').innerHTML = `
+                <tr><td colspan="12" class="loading"><div class="spinner"></div>Cargando...</td></tr>
+            `;
+        }
+
+        // Render Dashboard
+        function renderDashboard() {
+            const counts = {
+                urgente: 0,
+                alta: 0,
+                media: 0,
+                baja: 0,
+                backlog: 0
+            };
+
+            proyectos.forEach(p => {
+                const cat = (p['CATEGORÍA'] || '').toUpperCase();
+                if (cat === 'URGENTE') counts.urgente++;
+                else if (cat === 'ALTA') counts.alta++;
+                else if (cat === 'MEDIA') counts.media++;
+                else if (cat === 'BAJA') counts.baja++;
+                else if (cat === 'BACKLOG') counts.backlog++;
+            });
+
+            document.getElementById('count-urgente').textContent = counts.urgente;
+            document.getElementById('count-alta').textContent = counts.alta;
+            document.getElementById('count-media').textContent = counts.media;
+            document.getElementById('count-baja').textContent = counts.baja;
+            document.getElementById('count-backlog').textContent = counts.backlog;
+
+            // Top 10
+            const sorted = [...proyectos]
+                .filter(p => p['SCORE FINAL'] && p['Estado'] !== 'Entregado')
+                .sort((a, b) => parseFloat(b['SCORE FINAL']) - parseFloat(a['SCORE FINAL']))
+                .slice(0, 10);
+
+            const top10Body = document.getElementById('top10-body');
+            top10Body.innerHTML = sorted.map((p, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td class="proyecto-cell">${p['Proyecto/Demanda'] || ''}</td>
+                    <td>${p['Cliente/Empresa'] || ''}</td>
+                    <td>${p['Dev Asignado'] || ''}</td>
+                    <td class="score-cell">${parseFloat(p['SCORE FINAL'] || 0).toFixed(1)}</td>
+                    <td>${getBadge(p['CATEGORÍA'])}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Proyectos Table
+        function renderProyectos(filtered = null) {
+            const data = filtered || proyectos;
+            const tbody = document.getElementById('proyectos-body');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="12" class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                        <h3>No hay proyectos</h3>
+                        <p>Agrega tu primer proyecto o ajusta los filtros</p>
+                    </td></tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td>${p['ID'] || ''}</td>
+                    <td class="proyecto-cell">${p['Proyecto/Demanda'] || ''}</td>
+                    <td>${p['Cliente/Empresa'] || ''}</td>
+                    <td>${p['Tipo'] || ''}</td>
+                    <td>${p['Ticket Mensual'] || ''}</td>
+                    <td>${p['Presupuesto'] || ''}</td>
+                    <td>${p['Dev Asignado'] || ''}</td>
+                    <td>${p['Tiempo Implement.'] || ''}</td>
+                    <td>${truncate(p['Impacto'] || '', 20)}</td>
+                    <td>${p['Estado'] || ''}</td>
+                    <td class="score-cell">${p['SCORE FINAL'] ? parseFloat(p['SCORE FINAL']).toFixed(1) : '-'}</td>
+                    <td>${getBadge(p['CATEGORÍA'])}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Bubble Chart
+        function renderChart() {
+            const ctx = document.getElementById('bubbleChart').getContext('2d');
+            
+            if (bubbleChart) {
+                bubbleChart.destroy();
+            }
+
+            const chartData = proyectos
+                .filter(p => p['Eje X (Urgencia)'] && p['Eje Y (Valor)'] && p['Estado'] !== 'Entregado')
+                .map(p => ({
+                    x: parseFloat(p['Eje X (Urgencia)']) || 0,
+                    y: parseFloat(p['Eje Y (Valor)']) || 0,
+                    r: (parseFloat(p['Desarrollo']) || 1) * 4 + 4,
+                    label: p['Proyecto/Demanda'],
+                    categoria: p['CATEGORÍA']
+                }));
+
+            bubbleChart = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Proyectos',
+                        data: chartData,
+                        backgroundColor: chartData.map(d => getColorByCategoria(d.categoria, 0.7)),
+                        borderColor: chartData.map(d => getColorByCategoria(d.categoria, 1)),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: 0,
+                            max: 10,
+                            title: {
+                                display: true,
+                                text: 'URGENCIA →',
+                                font: { weight: '600', size: 12 }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        y: {
+                            min: 0,
+                            max: 10,
+                            title: {
+                                display: true,
+                                text: 'VALOR →',
+                                font: { weight: '600', size: 12 }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => {
+                                    return context[0].raw.label;
+                                },
+                                label: (context) => {
+                                    const d = context.raw;
+                                    return [
+                                        `Urgencia: ${d.x.toFixed(1)}`,
+                                        `Valor: ${d.y.toFixed(1)}`,
+                                        `Categoría: ${d.categoria || '-'}`
+                                    ];
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        annotation: {
+                            annotations: {
+                                quadrant1: {
+                                    type: 'box',
+                                    xMin: 5, xMax: 10,
+                                    yMin: 5, yMax: 10,
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    borderWidth: 0,
+                                    label: {
+                                        display: true,
+                                        content: 'HACER YA',
+                                        position: { x: 'end', y: 'start' },
+                                        font: { size: 11, weight: '600' },
+                                        color: 'rgba(239, 68, 68, 0.6)'
+                                    }
+                                },
+                                quadrant2: {
+                                    type: 'box',
+                                    xMin: 0, xMax: 5,
+                                    yMin: 5, yMax: 10,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderWidth: 0,
+                                    label: {
+                                        display: true,
+                                        content: 'PLANIFICAR',
+                                        position: { x: 'start', y: 'start' },
+                                        font: { size: 11, weight: '600' },
+                                        color: 'rgba(59, 130, 246, 0.6)'
+                                    }
+                                },
+                                quadrant3: {
+                                    type: 'box',
+                                    xMin: 5, xMax: 10,
+                                    yMin: 0, yMax: 5,
+                                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                                    borderWidth: 0,
+                                    label: {
+                                        display: true,
+                                        content: 'EVALUAR',
+                                        position: { x: 'end', y: 'end' },
+                                        font: { size: 11, weight: '600' },
+                                        color: 'rgba(251, 191, 36, 0.7)'
+                                    }
+                                },
+                                quadrant4: {
+                                    type: 'box',
+                                    xMin: 0, xMax: 5,
+                                    yMin: 0, yMax: 5,
+                                    backgroundColor: 'rgba(156, 163, 175, 0.08)',
+                                    borderWidth: 0,
+                                    label: {
+                                        display: true,
+                                        content: 'BACKLOG',
+                                        position: { x: 'start', y: 'end' },
+                                        font: { size: 11, weight: '600' },
+                                        color: 'rgba(156, 163, 175, 0.6)'
+                                    }
+                                },
+                                lineV: {
+                                    type: 'line',
+                                    xMin: 5, xMax: 5,
+                                    yMin: 0, yMax: 10,
+                                    borderColor: 'rgba(0,0,0,0.1)',
+                                    borderWidth: 1,
+                                    borderDash: [5, 5]
+                                },
+                                lineH: {
+                                    type: 'line',
+                                    xMin: 0, xMax: 10,
+                                    yMin: 5, yMax: 5,
+                                    borderColor: 'rgba(0,0,0,0.1)',
+                                    borderWidth: 1,
+                                    borderDash: [5, 5]
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Filters
+        function initFilters() {
+            ['filter-categoria', 'filter-dev', 'filter-estado'].forEach(id => {
+                document.getElementById(id).addEventListener('change', applyFilters);
+            });
+        }
+
+        function populateDevFilter() {
+            const devs = [...new Set(proyectos.map(p => p['Dev Asignado']).filter(Boolean))];
+            const select = document.getElementById('filter-dev');
+            select.innerHTML = '<option value="">Todos los devs</option>' + 
+                devs.map(d => `<option value="${d}">${d}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const categoria = document.getElementById('filter-categoria').value;
+            const dev = document.getElementById('filter-dev').value;
+            const estado = document.getElementById('filter-estado').value;
+
+            const filtered = proyectos.filter(p => {
+                if (categoria && p['CATEGORÍA'] !== categoria) return false;
+                if (dev && p['Dev Asignado'] !== dev) return false;
+                if (estado && p['Estado'] !== estado) return false;
+                return true;
+            });
+
+            renderProyectos(filtered);
+        }
+
+        // Form
+        function initForm() {
+            document.getElementById('proyecto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                // Manejar múltiples devs seleccionados
+                const devSelect = e.target.querySelector('select[name="dev"]');
+                const selectedDevs = Array.from(devSelect.selectedOptions).map(opt => opt.value);
+                data.dev = selectedDevs.join(', ');
+                
+                // For now, show instructions since Apps Script URL needs to be configured
+                if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+                    showToast('Configura la URL del Apps Script para habilitar la carga', 'error');
+                    console.log('Datos del formulario:', data);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        showToast('Proyecto agregado correctamente', 'success');
+                        e.target.reset();
+                        setTimeout(loadData, 1000);
+                    } else {
+                        throw new Error('Error en respuesta');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error al agregar proyecto', 'error');
+                }
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('proyecto-form').reset();
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            if (proyectos.length === 0) {
+                showToast('No hay datos para exportar', 'error');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(proyectos);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Proyectos');
+            XLSX.writeFile(wb, `priorizacion_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('Excel exportado', 'success');
+        }
+
+        // Utilities
+        function getBadge(categoria) {
+            const cat = (categoria || '').toUpperCase();
+            const classes = {
+                'URGENTE': 'badge-urgente',
+                'ALTA': 'badge-alta',
+                'MEDIA': 'badge-media',
+                'BAJA': 'badge-baja',
+                'BACKLOG': 'badge-backlog'
+            };
+            return `<span class="badge ${classes[cat] || 'badge-backlog'}">${cat || '-'}</span>`;
+        }
+
+        function getColorByCategoria(categoria, alpha = 1) {
+            const colors = {
+                'URGENTE': `rgba(220, 38, 38, ${alpha})`,
+                'ALTA': `rgba(245, 158, 11, ${alpha})`,
+                'MEDIA': `rgba(16, 185, 129, ${alpha})`,
+                'BAJA': `rgba(107, 114, 128, ${alpha})`,
+                'BACKLOG': `rgba(156, 163, 175, ${alpha})`
+            };
+            return colors[(categoria || '').toUpperCase()] || colors['BACKLOG'];
+        }
+
+        function truncate(str, len) {
+            return str.length > len ? str.substring(0, len) + '...' : str;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
