@@ -1191,7 +1191,7 @@
                 // Manejar múltiples devs seleccionados
                 const devSelect = e.target.querySelector('select[name="dev"]');
                 const selectedDevs = Array.from(devSelect.selectedOptions).map(opt => opt.value);
-                data.dev = selectedDevs.join(', ');
+                data.dev = selectedDevs.join(';');
                 
                 // For now, show instructions since Apps Script URL needs to be configured
                 if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
@@ -1277,3 +1277,4 @@
     </script>
 </body>
 </html>
+
