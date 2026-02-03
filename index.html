@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matriz_Prioridad de Producto</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #FAFBFC; --bg-secondary: #FFFFFF; --bg-tertiary: #F3F4F6;
+            --text-primary: #111827; --text-secondary: #6B7280; --text-muted: #9CA3AF;
+            --border: #E5E7EB; --border-light: #F3F4F6;
+            --accent: #2563EB; --accent-light: #DBEAFE;
+            --urgente: #DC2626; --urgente-bg: #FEE2E2;
+            --alta: #F59E0B; --alta-bg: #FEF3C7;
+            --media: #10B981; --media-bg: #D1FAE5;
+            --baja: #6B7280; --baja-bg: #F3F4F6;
+            --backlog: #9CA3AF; --backlog-bg: #F9FAFB;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --shadow-md: 0 4px 12px rgba(0,0,0,0.06); --shadow-lg: 0 12px 32px rgba(0,0,0,0.08);
+            --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.5; min-height: 100vh; }
+        .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; }
+        .header-content { max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 20px; height: 20px; color: white; }
+        .logo-text { font-weight: 700; font-size: 1.125rem; letter-spacing: -0.02em; }
+        .header-actions { display: flex; gap: 0.75rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 500; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--bg-tertiary); border-color: var(--text-muted); }
+        .btn svg { width: 16px; height: 16px; }
+        .main { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+        .tabs { display: flex; gap: 0.25rem; background: var(--bg-tertiary); padding: 0.25rem; border-radius: var(--radius-md); width: fit-content; margin-bottom: 2rem; }
+        .tab { padding: 0.625rem 1.25rem; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); background: transparent; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; }
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { background: var(--bg-secondary); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; transition: all 0.15s ease; }
+        .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; }
+        .stat-card.urgente { border-left: 4px solid var(--urgente); } .stat-card.urgente .stat-value { color: var(--urgente); }
+        .stat-card.alta { border-left: 4px solid var(--alta); } .stat-card.alta .stat-value { color: var(--alta); }
+        .stat-card.media { border-left: 4px solid var(--media); } .stat-card.media .stat-value { color: var(--media); }
+        .stat-card.baja { border-left: 4px solid var(--baja); } .stat-card.baja .stat-value { color: var(--baja); }
+        .stat-card.backlog { border-left: 4px solid var(--backlog); } .stat-card.backlog .stat-value { color: var(--backlog); }
+        .chart-container { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 2rem; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .chart-title { font-size: 1rem; font-weight: 600; }
+        .chart-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+        .chart-wrapper { position: relative; height: 500px; }
+        .table-container { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.75rem; }
+        .table-title { font-size: 1rem; font-weight: 600; }
+        .table-filters { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .filter-select { padding: 0.5rem 0.75rem; font-size: 0.8125rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; cursor: pointer; }
+        .filter-select:focus { outline: none; border-color: var(--accent); }
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { text-align: left; padding: 0.875rem 1rem; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); background: var(--bg-tertiary); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: 0.875rem 1rem; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+        tr:hover td { background: var(--bg-tertiary); }
+        .proyecto-cell { font-weight: 500; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.02em; }
+        .badge-urgente { background: var(--urgente-bg); color: var(--urgente); }
+        .badge-alta { background: var(--alta-bg); color: var(--alta); }
+        .badge-media { background: var(--media-bg); color: var(--media); }
+        .badge-baja { background: var(--baja-bg); color: var(--baja); }
+        .badge-backlog { background: var(--backlog-bg); color: var(--backlog); }
+        .badge-layer { font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; }
+        .badge-operativo { background: #E0E7FF; color: #3730A3; }
+        .badge-estrategico { background: #FEF3C7; color: #92400E; }
+        .score-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.875rem; }
+        .form-container { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; max-width: 800px; }
+        .form-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-label { font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); }
+        .form-input, .form-select { padding: 0.75rem 1rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; transition: all 0.15s ease; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+        .form-actions { margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 4rem; color: var(--text-muted); }
+        .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.75rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--text-primary); color: white; padding: 1rem 1.5rem; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 500; box-shadow: var(--shadow-lg); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 1000; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #059669; }
+        .toast.error { background: var(--urgente); }
+        @media (max-width: 768px) { .header { padding: 1rem; } .main { padding: 1rem; } .form-grid { grid-template-columns: 1fr; } .form-group.full-width { grid-column: span 1; } .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+        .empty-state svg { width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.5; }
+        .empty-state h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; }
+        .chart-legend { display: flex; gap: 1rem; font-size: 0.75rem; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 0.25rem; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg></div>
+                <span class="logo-text">Matriz_Prioridad de Producto</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="refreshData()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>Actualizar</button>
+                <button class="btn btn-primary" onclick="exportToExcel()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Exportar Excel</button>
+            </div>
+        </div>
+    </header>
+    <main class="main">
+        <nav class="tabs">
+            <button class="tab active" data-section="dashboard">Dashboard</button>
+            <button class="tab" data-section="proyectos">Proyectos</button>
+            <button class="tab" data-section="nuevo">+ Nuevo Proyecto</button>
+        </nav>
+        <section id="dashboard" class="section active">
+            <div class="dashboard-grid">
+                <div class="stat-card urgente"><div class="stat-label">Urgente</div><div class="stat-value" id="count-urgente">0</div></div>
+                <div class="stat-card alta"><div class="stat-label">Alta</div><div class="stat-value" id="count-alta">0</div></div>
+                <div class="stat-card media"><div class="stat-label">Media</div><div class="stat-value" id="count-media">0</div></div>
+                <div class="stat-card baja"><div class="stat-label">Baja</div><div class="stat-value" id="count-baja">0</div></div>
+                <div class="stat-card backlog"><div class="stat-label">Backlog</div><div class="stat-value" id="count-backlog">0</div></div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Matriz de Priorización</h2>
+                    <div class="chart-controls">
+                        <select class="filter-select" id="layer-view" title="Vista de capa">
+                            <option value="OPERATIVO">Operativos</option>
+                            <option value="ESTRATEGICO">Estratégicos</option>
+                            <option value="AMBOS" selected>Ambos</option>
+                        </select>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);"></span>Hacer Ya</span>
+                            <span class="legend-item"><span class="legend-dot" style="background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);"></span>Planificar</span>
+                            <span class="legend-item"><span class="legend-dot" style="background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3);"></span>Evaluar</span>
+                            <span class="legend-item"><span class="legend-dot" style="background: rgba(156,163,175,0.1); border: 1px solid rgba(156,163,175,0.3);"></span>Backlog</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-wrapper"><canvas id="bubbleChart"></canvas></div>
+                <div style="margin-top: 1rem; display: flex; gap: 1.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                    <span>● Borde sólido = Operativo</span>
+                    <span>◌ Borde punteado = Estratégico</span>
+                    <span>Tamaño = Tiempo de desarrollo</span>
+                </div>
+            </div>
+            <div class="table-container">
+                <div class="table-header"><h2 class="table-title">Top 10 Prioridades</h2></div>
+                <div class="table-scroll">
+                    <table><thead><tr><th>#</th><th>Proyecto</th><th>Cliente</th><th>Dev</th><th>Layer</th><th>Score</th><th>Categoría</th></tr></thead><tbody id="top10-body"></tbody></table>
+                </div>
+            </div>
+        </section>
+        <section id="proyectos" class="section">
+            <div class="table-container">
+                <div class="table-header">
+                    <h2 class="table-title">Todos los Proyectos</h2>
+                    <div class="table-filters">
+                        <select class="filter-select" id="filter-layer"><option value="">Todas las capas</option><option value="OPERATIVO">Operativo</option><option value="ESTRATEGICO">Estratégico</option></select>
+                        <select class="filter-select" id="filter-categoria"><option value="">Todas las categorías</option><option value="URGENTE">Urgente</option><option value="ALTA">Alta</option><option value="MEDIA">Media</option><option value="BAJA">Baja</option><option value="BACKLOG">Backlog</option></select>
+                        <select class="filter-select" id="filter-dev"><option value="">Todos los devs</option></select>
+                        <select class="filter-select" id="filter-estado"><option value="">Todos los estados</option><option value="Sin iniciar">Sin iniciar</option><option value="En progreso">En progreso</option><option value="Entregado">Entregado</option></select>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table><thead><tr><th>ID</th><th>Proyecto</th><th>Cliente</th><th>Tipo</th><th>Ticket</th><th>Presupuesto</th><th>Dev</th><th>Tiempo</th><th>Impacto</th><th>Estado</th><th>Layer</th><th>Score</th><th>Categoría</th></tr></thead><tbody id="proyectos-body"></tbody></table>
+                </div>
+            </div>
+        </section>
+        <section id="nuevo" class="section">
+            <div class="form-container">
+                <h2 class="form-title">Nuevo Proyecto</h2>
+                <form id="proyecto-form">
+                    <div class="form-grid">
+                        <div class="form-group full-width"><label class="form-label">Nombre del Proyecto *</label><input type="text" class="form-input" name="proyecto" required placeholder="Ej: Campaña Leads"></div>
+                        <div class="form-group"><label class="form-label">Cliente/Empresa *</label><input type="text" class="form-input" name="cliente" required placeholder="Ej: ArgenPymes"></div>
+                        <div class="form-group"><label class="form-label">Tipo *</label><select class="form-select" name="tipo" required><option value="">Seleccionar...</option><option value="Cliente">Cliente</option><option value="Prospecto">Prospecto</option></select></div>
+                        <div class="form-group"><label class="form-label">Ticket Mensual *</label><select class="form-select" name="ticket" required><option value="">Seleccionar...</option><option value="0">$0</option><option value="1-500">$1-500</option><option value="500-1000">$500-1000</option><option value="+1000">+$1000</option></select></div>
+                        <div class="form-group"><label class="form-label">Presupuesto *</label><select class="form-select" name="presupuesto" required><option value="">Seleccionar...</option><option value="No aplica">No aplica</option><option value="No enviado">No enviado</option><option value="Enviado">Enviado</option><option value="Enviado aprobado">Enviado aprobado</option></select></div>
+                        <div class="form-group"><label class="form-label">Dev Asignado * (Ctrl+click para varios)</label><select class="form-select" name="dev" required multiple size="4" style="height: auto;"><option value="Ajus">Ajus</option><option value="Fede Arienti">Fede Arienti</option><option value="Axel">Axel</option><option value="Ceci">Ceci</option><option value="Nahue">Nahue</option><option value="Fede del Pup">Fede del Pup</option><option value="Fede Kraft">Fede Kraft</option><option value="Lucas Ruiz">Lucas Ruiz</option><option value="Bauti">Bauti</option></select></div>
+                        <div class="form-group"><label class="form-label">Complejidad *</label><select class="form-select" name="complejidad" required><option value="">Seleccionar...</option><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option><option value="Muy Alta">Muy Alta</option></select></div>
+                        <div class="form-group"><label class="form-label">Tiempo Implementación *</label><select class="form-select" name="tiempo" required><option value="">Seleccionar...</option><option value="Horas">Horas</option><option value="Días">Días</option><option value="1-2 semanas">1-2 semanas</option><option value="2-4 semanas">2-4 semanas</option><option value="+1 mes">+1 mes</option></select></div>
+                        <div class="form-group full-width"><label class="form-label">Impacto *</label><select class="form-select" name="impacto" required><option value="">Seleccionar...</option><option value="Customizada cliente">Customizada cliente</option><option value="Mejora producto general">Mejora producto general</option><option value="Aplica más clientes tipo">Aplica más clientes tipo</option><option value="Aplica todos clientes">Aplica todos clientes</option><option value="Salto cuali MF">Salto cuali MF</option></select></div>
+                        <div class="form-group"><label class="form-label">Presión MAV *</label><select class="form-select" name="presionMAV" required><option value="">Seleccionar...</option><option value="Nula">Nula</option><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div>
+                        <div class="form-group"><label class="form-label">Presión MF *</label><select class="form-select" name="presionMF" required><option value="">Seleccionar...</option><option value="Nula">Nula</option><option value="Baja">Baja</option><option value="Media">Media</option><option value="Alta">Alta</option></select></div>
+                        <div class="form-group"><label class="form-label">Estado *</label><select class="form-select" name="estado" required><option value="">Seleccionar...</option><option value="Sin iniciar" selected>Sin iniciar</option><option value="En progreso">En progreso</option><option value="Entregado">Entregado</option></select></div>
+                        <div class="form-group"><label class="form-label">Layer *</label><select class="form-select" name="view" required><option value="">Seleccionar...</option><option value="Operativo" selected>Operativo</option><option value="Estrategico">Estratégico</option></select></div>
+                        <div class="form-group"><label class="form-label">Multiplicador (solo estratégicos)</label><input type="number" class="form-input" name="multiplicador" step="0.05" min="1" value="1.25" placeholder="1.25"></div>
+                        <div class="form-group full-width"><label class="form-label">Notas</label><input type="text" class="form-input" name="notas" placeholder="Comentarios adicionales..."></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Limpiar</button>
+                        <button type="submit" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>Agregar Proyecto</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+    <div class="toast" id="toast"></div>
+    <script>
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSQGloopR7rK5psg-iSixpsIe0acRF_yoCfnHo5DEUQSMbBaIohDXGBJftpl2JBK2_3jXfgDVT8kT75/pub?gid=356196305&single=true&output=csv';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiP1jMNNrcHlZjI_UGeI1tNKxB4s5lWtm3Ikxy-dWamGtMAIxB6dijI1-qjgAzOLWp/exec';
+        const LAYERS = { OPERATIVO: 'OPERATIVO', ESTRATEGICO: 'ESTRATEGICO', AMBOS: 'AMBOS' };
+        const DEFAULT_MULTIPLICADOR = 1.25;
+        let proyectos = [], bubbleChart = null, layerView = LAYERS.AMBOS;
+
+        document.addEventListener('DOMContentLoaded', () => { initTabs(); initFilters(); initForm(); initLayerView(); loadData(); });
+
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.section).classList.add('active');
+                });
+            });
+        }
+
+        function initLayerView() {
+            const sel = document.getElementById('layer-view');
+            if (!sel) return;
+            sel.addEventListener('change', () => { layerView = sel.value; renderDashboard(); renderChart(); applyFilters(); });
+        }
+
+        async function loadData() {
+            try {
+                showLoading();
+                const response = await fetch(SHEET_CSV_URL);
+                const csvText = await response.text();
+                Papa.parse(csvText, {
+                    header: true, skipEmptyLines: true,
+                    complete: (results) => {
+                        proyectos = results.data.filter(row => row['Proyecto/Demanda'] && row['Proyecto/Demanda'].trim() !== '').map(normalizeProyecto);
+                        renderDashboard(); renderProyectos(); renderChart(); populateDevFilter();
+                    }
+                });
+            } catch (error) { console.error('Error:', error); showToast('Error al cargar datos', 'error'); }
+        }
+
+        function refreshData() { loadData(); showToast('Datos actualizados', 'success'); }
+        function showLoading() { document.getElementById('proyectos-body').innerHTML = '<tr><td colspan="13" class="loading"><div class="spinner"></div>Cargando...</td></tr>'; }
+
+        function normalizeProyecto(p) {
+            const layer = getLayerFromRow(p);
+            const rawScore = parseFloat(p['SCORE FINAL'] || 0);
+            const multiplicador = getMultiplicador(p, layer);
+            const adjustedScore = getAdjustedScore(rawScore, layer, multiplicador);
+            return { ...p, __layer: layer, __multiplicador: multiplicador, __score_raw: isFinite(rawScore) ? rawScore : 0, __score_adj: isFinite(adjustedScore) ? adjustedScore : 0 };
+        }
+
+        function getLayerFromRow(p) {
+            const view = (p['view'] || p['View'] || p['VIEW'] || '').trim().toLowerCase();
+            return view === 'estrategico' ? LAYERS.ESTRATEGICO : LAYERS.OPERATIVO;
+        }
+
+        function getMultiplicador(p, layer) {
+            if (layer !== LAYERS.ESTRATEGICO) return 1;
+            const mult = parseFloat(String(p['Multiplicador'] || p['multiplicador'] || '').replace(',', '.'));
+            return (isFinite(mult) && mult >= 1) ? mult : DEFAULT_MULTIPLICADOR;
+        }
+
+        function getAdjustedScore(rawScore, layer, multiplicador) {
+            if (!isFinite(rawScore)) return 0;
+            return layer === LAYERS.ESTRATEGICO ? rawScore * multiplicador : rawScore;
+        }
+
+        function filterByLayerView(data) { return layerView === LAYERS.AMBOS ? data : data.filter(p => p.__layer === layerView); }
+
+        function sortByPriority(a, b) {
+            const scoreDiff = (b.__score_adj || 0) - (a.__score_adj || 0);
+            if (Math.abs(scoreDiff) <= 5) {
+                if (a.__layer === LAYERS.ESTRATEGICO && b.__layer !== LAYERS.ESTRATEGICO) return -1;
+                if (b.__layer === LAYERS.ESTRATEGICO && a.__layer !== LAYERS.ESTRATEGICO) return 1;
+            }
+            return scoreDiff;
+        }
+
+        function renderDashboard() {
+            const visible = filterByLayerView(proyectos);
+            const counts = { urgente: 0, alta: 0, media: 0, baja: 0, backlog: 0 };
+            visible.forEach(p => {
+                const cat = (p['CATEGORÍA'] || p['CATEGORIA'] || '').toUpperCase();
+                if (cat === 'URGENTE') counts.urgente++; else if (cat === 'ALTA') counts.alta++; else if (cat === 'MEDIA') counts.media++; else if (cat === 'BAJA') counts.baja++; else if (cat === 'BACKLOG') counts.backlog++;
+            });
+            document.getElementById('count-urgente').textContent = counts.urgente;
+            document.getElementById('count-alta').textContent = counts.alta;
+            document.getElementById('count-media').textContent = counts.media;
+            document.getElementById('count-baja').textContent = counts.baja;
+            document.getElementById('count-backlog').textContent = counts.backlog;
+            const sorted = [...visible].filter(p => p['SCORE FINAL'] && p['Estado'] !== 'Entregado').sort(sortByPriority).slice(0, 10);
+            document.getElementById('top10-body').innerHTML = sorted.map((p, i) => `<tr><td>${i + 1}</td><td class="proyecto-cell">${p['Proyecto/Demanda'] || ''}</td><td>${p['Cliente/Empresa'] || ''}</td><td>${p['Dev Asignado'] || ''}</td><td>${getLayerBadge(p.__layer)}</td><td class="score-cell">${(p.__score_adj || 0).toFixed(1)}</td><td>${getBadge(p['CATEGORÍA'] || p['CATEGORIA'])}</td></tr>`).join('');
+        }
+
+        function renderProyectos(filtered = null) {
+            const data = filtered || filterByLayerView(proyectos);
+            const tbody = document.getElementById('proyectos-body');
+            if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="13" class="empty-state"><h3>No hay proyectos</h3><p>Agrega tu primer proyecto o ajusta los filtros</p></td></tr>'; return; }
+            tbody.innerHTML = data.map(p => `<tr><td>${p['ID'] || ''}</td><td class="proyecto-cell">${p['Proyecto/Demanda'] || ''}</td><td>${p['Cliente/Empresa'] || ''}</td><td>${p['Tipo'] || ''}</td><td>${p['Ticket Mensual'] || ''}</td><td>${p['Presupuesto'] || ''}</td><td>${p['Dev Asignado'] || ''}</td><td>${p['Tiempo Implement.'] || ''}</td><td>${truncate(p['Impacto'] || '', 20)}</td><td>${p['Estado'] || ''}</td><td>${getLayerBadge(p.__layer)}</td><td class="score-cell">${p['SCORE FINAL'] ? (p.__score_adj || 0).toFixed(1) : '-'}</td><td>${getBadge(p['CATEGORÍA'] || p['CATEGORIA'])}</td></tr>`).join('');
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('bubbleChart').getContext('2d');
+            if (bubbleChart) bubbleChart.destroy();
+            const base = proyectos.filter(p => p['Eje X (Urgencia)'] && p['Eje Y (Valor)'] && p['Estado'] !== 'Entregado');
+            const operativos = base.filter(p => p.__layer === LAYERS.OPERATIVO);
+            const estrategicos = base.filter(p => p.__layer === LAYERS.ESTRATEGICO);
+            const mapPoint = (p) => ({ x: parseFloat(p['Eje X (Urgencia)']) || 0, y: parseFloat(p['Eje Y (Valor)']) || 0, r: (parseFloat(p['Desarrollo']) || 1) * 4 + 4, label: p['Proyecto/Demanda'], categoria: p['CATEGORÍA'] || p['CATEGORIA'], layer: p.__layer });
+            const dsOp = { label: 'Operativos', data: operativos.map(mapPoint), backgroundColor: operativos.map(p => getColorByCategoria(p['CATEGORÍA'] || p['CATEGORIA'], 0.7)), borderColor: operativos.map(p => getColorByCategoria(p['CATEGORÍA'] || p['CATEGORIA'], 1)), borderWidth: 2 };
+            const dsEs = { label: 'Estratégicos', data: estrategicos.map(mapPoint), backgroundColor: estrategicos.map(p => getColorByCategoria(p['CATEGORÍA'] || p['CATEGORIA'], 0.7)), borderColor: estrategicos.map(p => getColorByCategoria(p['CATEGORÍA'] || p['CATEGORIA'], 1)), borderWidth: 3, borderDash: [6, 4] };
+            let datasets = layerView === LAYERS.OPERATIVO ? [dsOp] : layerView === LAYERS.ESTRATEGICO ? [dsEs] : [dsOp, dsEs];
+            bubbleChart = new Chart(ctx, {
+                type: 'bubble', data: { datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { min: 0, max: 10, title: { display: true, text: 'URGENCIA →', font: { weight: '600', size: 12 } }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { min: 0, max: 10, title: { display: true, text: 'VALOR →', font: { weight: '600', size: 12 } }, grid: { color: 'rgba(0,0,0,0.05)' } } },
+                    plugins: {
+                        tooltip: { callbacks: { title: (ctx) => ctx[0].raw.label, label: () => '' } },
+                        legend: { display: false },
+                        annotation: { annotations: {
+                            q1: { type: 'box', xMin: 5, xMax: 10, yMin: 5, yMax: 10, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 0, label: { display: true, content: 'HACER YA', position: { x: 'end', y: 'start' }, font: { size: 11, weight: '600' }, color: 'rgba(239, 68, 68, 0.6)' } },
+                            q2: { type: 'box', xMin: 0, xMax: 5, yMin: 5, yMax: 10, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 0, label: { display: true, content: 'PLANIFICAR', position: { x: 'start', y: 'start' }, font: { size: 11, weight: '600' }, color: 'rgba(59, 130, 246, 0.6)' } },
+                            q3: { type: 'box', xMin: 5, xMax: 10, yMin: 0, yMax: 5, backgroundColor: 'rgba(251, 191, 36, 0.1)', borderWidth: 0, label: { display: true, content: 'EVALUAR', position: { x: 'end', y: 'end' }, font: { size: 11, weight: '600' }, color: 'rgba(251, 191, 36, 0.7)' } },
+                            q4: { type: 'box', xMin: 0, xMax: 5, yMin: 0, yMax: 5, backgroundColor: 'rgba(156, 163, 175, 0.08)', borderWidth: 0, label: { display: true, content: 'BACKLOG', position: { x: 'start', y: 'end' }, font: { size: 11, weight: '600' }, color: 'rgba(156, 163, 175, 0.6)' } },
+                            lineV: { type: 'line', xMin: 5, xMax: 5, yMin: 0, yMax: 10, borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [5, 5] },
+                            lineH: { type: 'line', xMin: 0, xMax: 10, yMin: 5, yMax: 5, borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [5, 5] }
+                        } }
+                    }
+                }
+            });
+        }
+
+        function initFilters() { ['filter-layer', 'filter-categoria', 'filter-dev', 'filter-estado'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', applyFilters); }); }
+        function populateDevFilter() { const devs = [...new Set(proyectos.map(p => p['Dev Asignado']).filter(Boolean))]; document.getElementById('filter-dev').innerHTML = '<option value="">Todos los devs</option>' + devs.map(d => `<option value="${d}">${d}</option>`).join(''); }
+        function applyFilters() {
+            const layerFilter = document.getElementById('filter-layer')?.value || '', categoria = document.getElementById('filter-categoria').value, dev = document.getElementById('filter-dev').value, estado = document.getElementById('filter-estado').value;
+            const filtered = filterByLayerView(proyectos).filter(p => { if (layerFilter && p.__layer !== layerFilter) return false; if (categoria && (p['CATEGORÍA'] || p['CATEGORIA']) !== categoria) return false; if (dev && !p['Dev Asignado']?.includes(dev)) return false; if (estado && p['Estado'] !== estado) return false; return true; });
+            renderProyectos(filtered);
+        }
+
+        function initForm() {
+            document.getElementById('proyecto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target), data = Object.fromEntries(formData.entries());
+                data.dev = Array.from(e.target.querySelector('select[name="dev"]').selectedOptions).map(opt => opt.value).join(';');
+                if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') { showToast('Configura la URL del Apps Script', 'error'); return; }
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
+                    if (response.ok) { showToast('Proyecto agregado', 'success'); e.target.reset(); setTimeout(loadData, 1000); } else throw new Error('Error');
+                } catch (error) { console.error(error); showToast('Error al agregar', 'error'); }
+            });
+        }
+
+        function resetForm() { document.getElementById('proyecto-form').reset(); }
+        function exportToExcel() {
+            if (proyectos.length === 0) { showToast('No hay datos', 'error'); return; }
+            const ws = XLSX.utils.json_to_sheet(proyectos.map(p => ({ ...p, Layer: p.__layer, Multiplicador: p.__multiplicador, 'SCORE RAW': p.__score_raw, 'SCORE AJUSTADO': p.__score_adj }))), wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Proyectos');
+            XLSX.writeFile(wb, `priorizacion_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('Excel exportado', 'success');
+        }
+
+        function getBadge(cat) { const c = (cat || '').toUpperCase(), cls = { 'URGENTE': 'badge-urgente', 'ALTA': 'badge-alta', 'MEDIA': 'badge-media', 'BAJA': 'badge-baja', 'BACKLOG': 'badge-backlog' }; return `<span class="badge ${cls[c] || 'badge-backlog'}">${c || '-'}</span>`; }
+        function getLayerBadge(layer) { return layer === LAYERS.ESTRATEGICO ? '<span class="badge-layer badge-estrategico">ESTRAT</span>' : '<span class="badge-layer badge-operativo">OPER</span>'; }
+        function getColorByCategoria(cat, alpha = 1) { const colors = { 'URGENTE': `rgba(220,38,38,${alpha})`, 'ALTA': `rgba(245,158,11,${alpha})`, 'MEDIA': `rgba(16,185,129,${alpha})`, 'BAJA': `rgba(107,114,128,${alpha})`, 'BACKLOG': `rgba(156,163,175,${alpha})` }; return colors[(cat || '').toUpperCase()] || colors['BACKLOG']; }
+        function truncate(str, len) { return str.length > len ? str.substring(0, len) + '...' : str; }
+        function showToast(msg, type = 'success') { const t = document.getElementById('toast'); t.textContent = msg; t.className = `toast ${type} show`; setTimeout(() => t.classList.remove('show'), 3000); }
+    </script>
+</body>
+</html>
